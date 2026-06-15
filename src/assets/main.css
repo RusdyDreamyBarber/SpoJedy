@@ -144,7 +144,7 @@ input[type="range"].waveform {
 /* Button green — Spotify play style */
 .btn-green {
   background: var(--green);
-  color: white;
+  color: rgb(9, 9, 9);
   border: none;
   padding: 10px 22px;
   border-radius: 50px;

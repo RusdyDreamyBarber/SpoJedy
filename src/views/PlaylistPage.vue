@@ -1,8 +1,14 @@
 <template>
-  <div style="min-height:100vh; background: linear-gradient(180deg, #0a0a0f 0%, #121212 300px);">
+  <div :style="{
+    minHeight: '100vh',
+    backgroundColor: 'var(--bg-main)',
+    backgroundImage: store.profile.theme === 'dark' 
+      ? 'linear-gradient(180deg, #0a0a0f 0%, var(--bg-main) 300px)' 
+      : 'linear-gradient(180deg, #f4f4f6 0%, var(--bg-main) 300px)',
+    transition: 'background 0.3s, color 0.3s'
+  }">
     <div style="max-width:1100px; margin:0 auto; padding:40px 24px;">
 
-      <!-- Header -->
       <div class="fade-in" style="margin-bottom:40px;">
         <p style="color:var(--accent); font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; font-weight:600; margin-bottom:8px;">Your Music</p>
         <h1 style="font-size:clamp(2rem,5vw,3.5rem); font-weight:800; color:var(--text-primary);">
@@ -10,7 +16,6 @@
         </h1>
       </div>
 
-      <!-- Favorites Section -->
       <div class="card fade-in-1" style="padding:24px; margin-bottom:28px; cursor:pointer;"
         @click="showFavorites = !showFavorites">
         <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -29,10 +34,9 @@
           </svg>
         </div>
 
-        <!-- Liked Songs List -->
         <div v-if="showFavorites && favoriteSongs.length > 0" style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
           <div v-for="song in favoriteSongs" :key="song.id"
-            @click.stop="$router.push(`/song/${song.id}`)"
+             @click.stop="$router.push(`/song/${song.id}`)"
             style="display:flex; align-items:center; gap:12px; padding:8px; border-radius:8px; cursor:pointer; transition:background 0.2s;"
             class="song-row">
             <img :src="song.cover" :alt="song.title"
@@ -55,7 +59,6 @@
         </div>
       </div>
 
-      <!-- Create Playlist -->
       <div class="fade-in-2" style="margin-bottom:28px;">
         <div v-if="!showCreate" @click="showCreate = true"
           style="display:flex; align-items:center; gap:12px; padding:16px; border:2px dashed var(--border); border-radius:12px; cursor:pointer; transition:all 0.2s;"
@@ -66,7 +69,6 @@
           <p style="font-family:'Syne',sans-serif; font-weight:600; color:var(--text-secondary);">Create New Playlist</p>
         </div>
 
-        <!-- Form buat playlist baru -->
         <div v-if="showCreate" class="card" style="padding:20px;">
           <p style="font-family:'Syne',sans-serif; font-weight:700; color:var(--text-primary); margin-bottom:14px;">New Playlist</p>
           <div style="display:flex; gap:12px;">
@@ -90,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Playlist List -->
       <div class="fade-in-3">
         <div v-if="store.playlists.length === 0 && !showCreate"
           style="text-align:center; padding:40px; color:var(--text-secondary);">
@@ -99,11 +100,9 @@
 
         <div style="display:flex; flex-direction:column; gap:16px;">
           <div v-for="playlist in store.playlists" :key="playlist.id" class="card" style="padding:0; overflow:hidden;">
-            <!-- Playlist Header -->
             <div style="padding:20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;"
               @click="togglePlaylist(playlist.id)">
               <div style="display:flex; align-items:center; gap:16px;">
-                <!-- Playlist cover — pakai cover lagu pertama kalau ada -->
                 <div style="width:56px; height:56px; border-radius:12px; overflow:hidden; background:var(--bg-hover); flex-shrink:0;">
                   <img v-if="store.getPlaylistSongs(playlist.id)[0]"
                     :src="store.getPlaylistSongs(playlist.id)[0].cover"
@@ -113,7 +112,6 @@
                   </div>
                 </div>
                 <div>
-                  <!-- Playlist Name — bisa di-edit -->
                   <div v-if="editingId !== playlist.id" style="display:flex; align-items:center; gap:8px;">
                     <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; color:var(--text-primary);">{{ playlist.name }}</p>
                     <button @click.stop="startEdit(playlist)"
@@ -121,7 +119,6 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                     </button>
                   </div>
-                  <!-- Edit name input -->
                   <div v-else style="display:flex; align-items:center; gap:8px;" @click.stop>
                     <input v-model="editName" type="text"
                       @keyup.enter="saveEdit(playlist.id)"
@@ -136,7 +133,6 @@
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <!-- Delete playlist -->
                 <button @click.stop="store.deletePlaylist(playlist.id)"
                   style="background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:4px; transition:color 0.2s;"
                   @mouseover="e=>e.currentTarget.style.color='#ff4d4d'"
@@ -150,7 +146,6 @@
               </div>
             </div>
 
-            <!-- Songs in playlist -->
             <div v-if="openPlaylistId === playlist.id">
               <div v-if="store.getPlaylistSongs(playlist.id).length === 0"
                 style="padding:16px 20px 20px; color:var(--text-secondary); font-size:0.85rem; text-align:center;">
@@ -160,14 +155,13 @@
               <div v-for="song in store.getPlaylistSongs(playlist.id)" :key="song.id"
                 style="display:flex; align-items:center; gap:12px; padding:10px 20px; border-top:1px solid var(--border); cursor:pointer; transition:background 0.2s;"
                 class="song-row"
-                @click="$router.push(`/song/${song.id}`)">
+                @click="playSong(playlist.id, song.id)">
                 <img :src="song.cover" :alt="song.title"
                   style="width:40px; height:40px; border-radius:6px; object-fit:cover; flex-shrink:0;" />
                 <div style="flex:1; overflow:hidden;">
                   <p style="font-family:'Syne',sans-serif; font-weight:600; font-size:0.88rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ song.title }}</p>
                   <p style="color:var(--text-secondary); font-size:0.75rem; margin-top:2px;">{{ song.artist }}</p>
                 </div>
-                <!-- Remove from playlist -->
                 <button @click.stop="store.removeSongFromPlaylist(playlist.id, song.id)"
                   style="background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:4px; transition:color 0.2s;"
                   @mouseover="e=>e.currentTarget.style.color='#ff4d4d'"
@@ -186,7 +180,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'  
 import { store } from '@/stores/appStore.js'
+
+const router = useRouter()  
 
 const showFavorites   = ref(false)
 const showCreate      = ref(false)
@@ -195,6 +192,11 @@ const nameError       = ref('')
 const openPlaylistId  = ref(null)
 const editingId       = ref(null)
 const editName        = ref('')
+
+function playSong(playlistId, songId) {
+  store.currentPlaylistId = playlistId  // set playlist aktif
+  router.push(`/song/${songId}`)
+}
 
 // Liked songs
 const favoriteSongs = computed(() =>

@@ -1,147 +1,124 @@
 <template>
-  <div style="max-width:600px; margin:0 auto; padding:40px 24px;">
-    <div class="fade-in" style="margin-bottom:36px;">
-      <p style="color:var(--accent); font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; font-weight:600; margin-bottom:8px;">Account</p>
-      <h1 style="font-size:2.5rem; font-weight:800; color:var(--text-primary);">Your Profile</h1>
+<div style="max-width:600px; margin:0 auto; padding:40px 24px;">
+  <div class="fade-in" style="margin-bottom:36px;">
+    <p style="color:var(--accent); font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; font-weight:600; margin-bottom:8px;">Account</p>
+    <h1 style="font-size:2.5rem; font-weight:800; color:var(--text-primary); font-family:'Syne', sans-serif;">Your Profile</h1>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:28px;">
+    
+    <div class="card fade-in-1" style="padding:28px; display:flex; flex-direction:column; align-items:center; gap:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:16px;">
+      <div style="position:relative;">
+        <div :style="{
+          width:'110px', height:'110px', borderRadius:'50%', overflow:'hidden',
+          border:'3px solid var(--accent)', boxShadow:'0 0 20px var(--accent-glow)',
+          background:'var(--bg-hover)', display:'flex', alignItems:'center', justifyContent:'center',
+        }">
+          <div v-if="imgLoading" class="skeleton" style="position:absolute; inset:0; border-radius:50%;" />
+          <img v-if="store.profile.profileImage && !imgLoading" :src="store.profile.profileImage" alt="Profile" style="width:100%; height:100%; object-fit:cover;" />
+          <svg v-if="!store.profile.profileImage && !imgLoading" width="50" height="50" viewBox="0 0 24 24" fill="var(--text-secondary)">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+      </div>
+      <label style="cursor:pointer;">
+        <input type="file" accept="image/*" @change="handleImageUpload" style="display:none;" />
+        
+        <span class="btn-accent" data-bs-toggle="tooltip" data-bs-placement="top" title="Format JPG/PNG, Maks 1MB">
+          Change Photo
+        </span>
+      </label>
     </div>
 
-    <div style="display:flex; flex-direction:column; gap:28px;">
-
-      <!-- Profile Image -->
-      <div class="card fade-in-1" style="padding:28px; display:flex; flex-direction:column; align-items:center; gap:20px;">
-        <div style="position:relative;">
-          <div :style="{
-            width:'110px', height:'110px', borderRadius:'50%', overflow:'hidden',
-            border:'3px solid var(--accent)', boxShadow:'0 0 20px var(--accent-glow)',
-            background:'var(--bg-hover)', display:'flex', alignItems:'center', justifyContent:'center',
-          }">
-            <div v-if="imgLoading" class="skeleton" style="position:absolute; inset:0; border-radius:50%;" />
-            <img v-if="store.profile.profileImage && !imgLoading"
-              :src="store.profile.profileImage" alt="Profile"
-              style="width:100%; height:100%; object-fit:cover;" />
-            <svg v-if="!store.profile.profileImage && !imgLoading"
-              width="50" height="50" viewBox="0 0 24 24" fill="var(--text-secondary)">
-              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-            </svg>
-          </div>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-          <label style="cursor:pointer;">
-            <input type="file" accept="image/*" @change="handleImageUpload" style="display:none;" />
-            <span class="btn-accent" style="display:inline-block;">Upload Photo</span>
-          </label>
-          <p style="color:var(--text-secondary); font-size:0.78rem;">Max 1 MB · compressed automatically</p>
-          <p v-if="imgError" style="color:#ff6b6b; font-size:0.78rem;">{{ imgError }}</p>
-        </div>
+    <div class="card fade-in-2" style="padding:28px; background:var(--bg-card); border:1px solid var(--border); border-radius:16px;">
+      <label style="display:block; color:var(--text-secondary); font-size:0.82rem; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Username</label>
+      <div style="display:flex; gap:12px; margin-bottom:12px;">
+        <input v-model="usernameInput" type="text" :style="{
+          flex:1, background:'var(--bg-hover)', border:'1px solid var(--border)',
+          borderRadius:'10px', padding:'10px 14px', color:'var(--text-primary)', outline:'none',
+          fontFamily:'DM Sans, sans-serif'
+        }" />
+        <button @click="saveUsernameInstantly" class="btn-accent">Save</button>
       </div>
 
-      <!-- Username -->
-      <div class="card fade-in-2" style="padding:28px;">
-        <label style="display:block; color:var(--text-secondary); font-size:0.82rem; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Username</label>
-        <div style="display:flex; gap:12px;">
-          <input v-model="usernameInput" type="text" placeholder="Enter username"
-            @keyup.enter="saveUsername"
-            :style="{
-              flex:1, background:'var(--bg-hover)', border:'1px solid var(--border)',
-              borderRadius:'10px', padding:'10px 14px', color:'var(--text-primary)',
-              fontSize:'1rem', outline:'none', fontFamily:'DM Sans, sans-serif',
-            }"
-            @focus="e=>e.target.style.borderColor='var(--accent)'"
-            @blur="e=>e.target.style.borderColor='var(--border)'"
-          />
-          <button @click="saveUsername" class="btn-accent">Save</button>
-        </div>
-        <p v-if="usernameSaved" style="color:var(--accent); font-size:0.8rem; margin-top:8px;">✓ Username updated!</p>
+      <div v-if="showAlert" class="alert alert-success alert-dismissible fade show" role="alert" style="margin:0; font-size:0.88rem; border-radius:10px; background-color:#198754; color:#fff; border:none;">
+         <strong>Success!</strong> Username berhasil diperbarui.
+        <button type="button" class="btn-close" @click="showAlert = false" aria-label="Close" style="filter:invert(1); padding:1.05rem 1rem;"></button>
       </div>
+    </div>
 
-      <!-- Theme -->
-<div class="card fade-in-3" style="padding:28px;">
-  <label style="display:block; color:var(--text-secondary); font-size:0.82rem; margin-bottom:16px; text-transform:uppercase; letter-spacing:1px;">Theme</label>
-  <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <span style="font-size:1.2rem;">{{ store.profile.theme === 'dark' ? '🌚' : '🌝' }}</span>
+    <div class="card fade-in-3" style="padding:28px; display:flex; flex-direction:row; justify-content:space-between; align-items:center; background:var(--bg-card); border:1px solid var(--border); border-radius:16px;">
       <div>
-        <p style="color:var(--text-primary); font-family:'Syne',sans-serif; font-weight:600;">{{ store.profile.theme === 'dark' ? 'Dark Mode' : 'Light Mode' }}</p>
-        <p style="color:var(--text-secondary); font-size:0.78rem; margin-top:2px;">{{ store.profile.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode' }}</p>
+        <label style="display:block; color:var(--text-secondary); font-size:0.82rem; text-transform:uppercase; letter-spacing:1px;">Theme Preference</label>
+        <p style="margin:0; font-weight:600; color:var(--text-primary);">{{ store.profile.theme === 'dark' ? 'Dark Mode' : 'Light Mode' }}</p>
+      </div>
+      
+      <div @click="toggleTheme" :style="{
+        width: '64px', height: '34px', borderRadius: '20px', 
+        background: store.profile.theme === 'dark' ? 'var(--accent)' : '#ccc',
+        position: 'relative', cursor: 'pointer', transition: '0.3s',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }">
+        <div :style="{
+          width: '26px', height: '26px', borderRadius: '50%', background: '#fff',
+          position: 'absolute', top: '4px', 
+          left: store.profile.theme === 'dark' ? '34px' : '4px',
+          transition: '0.3s', boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '0.85rem', userSelect: 'none'
+        }">
+          {{ store.profile.theme === 'dark' ? '🌚' : '🌝' }}
+        </div>
       </div>
     </div>
-    <!-- Toggle button -->
-    <div @click="store.setTheme(store.profile.theme === 'dark' ? 'light' : 'dark')"
-      :style="{
-        width: '52px', height: '28px', borderRadius: '50px',
-        background: store.profile.theme === 'dark' ? 'var(--bg-hover)' : 'var(--accent)',
-        cursor: 'pointer', position: 'relative',
-        transition: 'background 0.3s ease',
-        border: '1px solid var(--border)',
-      }">
-      <div :style="{
-        position: 'absolute', top: '3px',
-        left: store.profile.theme === 'dark' ? '3px' : '25px',
-        width: '20px', height: '20px', borderRadius: '50%',
-        background: store.profile.theme === 'dark' ? 'var(--text-secondary)' : 'white',
-        transition: 'left 0.3s ease',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-      }" />
-    </div>
+
   </div>
 </div>
-
-    </div>
-  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { store } from '@/stores/appStore.js'
+import { ref, onMounted } from 'vue'
+import { store } from '@/stores/appStore.js' // Mengimpor global state manajemen lokal
+import { Tooltip } from 'bootstrap'         // Mengimpor modul JavaScript Tooltip resmi Bootstrap
 
 const usernameInput = ref(store.profile.username)
-const usernameSaved = ref(false)
-const imgLoading    = ref(false)
-const imgError      = ref('')
+const imgLoading = ref(false)
+const showAlert = ref(false)
 
-function saveUsername() {
+// Aktifkan fungsionalitas interaktif Bootstrap Tooltip saat halaman dimuat
+onMounted(() => {
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+  tooltipTriggerList.forEach(el => new Tooltip(el))
+})
+
+// Fungsi simpan instan sekali klik (Tanpa pop-up konfirmasi)
+function saveUsernameInstantly() {
   if (!usernameInput.value.trim()) return
   store.setUsername(usernameInput.value.trim())
-  usernameSaved.value = true
-  setTimeout(() => usernameSaved.value = false, 2000)
+  
+  // Nyalakan Alert Bootstrap, otomatis disembunyikan setelah 3 detik
+  showAlert.value = true
+  setTimeout(() => {
+    showAlert.value = false
+  }, 3000)
 }
 
+// Fungsi pengubah tema (Light / Dark)
+function toggleTheme() {
+  const newTheme = store.profile.theme === 'dark' ? 'light' : 'dark'
+  store.setTheme(newTheme)
+}
+
+// Fungsi pemroses unggahan gambar profil ke Base64 data string
 function handleImageUpload(e) {
   const file = e.target.files[0]
   if (!file) return
-  imgError.value   = ''
   imgLoading.value = true
-
   const reader = new FileReader()
-  reader.readAsDataURL(file)
   reader.onload = (ev) => {
-    const img = new Image()
-    img.src = ev.target.result
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      let { width, height } = img
-      const maxDim = 800
-      if (width > maxDim || height > maxDim) {
-        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
-        else { width = Math.round(width * maxDim / height); height = maxDim }
-      }
-      canvas.width = width; canvas.height = height
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-
-      let quality = 0.9
-      let dataUrl = canvas.toDataURL('image/jpeg', quality)
-      while (dataUrl.length > 1048576 && quality > 0.1) {
-        quality -= 0.1
-        dataUrl = canvas.toDataURL('image/jpeg', quality)
-      }
-      if (dataUrl.length > 1048576) {
-        imgError.value = 'Image too large. Please use a smaller image.'
-        imgLoading.value = false
-        return
-      }
-      store.setProfileImage(dataUrl)
-      imgLoading.value = false
-    }
+    store.setProfileImage(ev.target.result)
+    imgLoading.value = false
   }
+  reader.readAsDataURL(file)
 }
 </script>

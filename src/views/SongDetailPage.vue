@@ -17,6 +17,11 @@
         <h1 style="font-size:1.8rem; font-weight:800; color:var(--text-primary);">{{ song.title }}</h1>
         <p style="color:var(--text-secondary); margin-top:4px;">{{ song.artist }}</p>
       </div>
+      
+      <button @click="store.toggleFavorite(song.id)"
+        style="background:none; border:none; cursor:pointer; font-size:1.5rem;">
+        {{ store.isFavorite(song.id) ? '❤️' : '🤍' }}
+      </button>
 
       <div style="width:100%;">
         <input type="range" min="0" :max="duration||100" :value="currentTime"
@@ -81,7 +86,79 @@
   Repeat
 </button>
 </div>
+      <!-- Tombol trigger modal -->
+<button data-bs-toggle="modal" data-bs-target="#playlistModal"
+  style="background:var(--bg-hover); border:1px solid var(--border); padding:10px 20px; border-radius:50px; cursor:pointer; color:var(--text-primary); font-size:0.85rem; font-family:'Syne',sans-serif; font-weight:600; display:flex; align-items:center; gap:8px; transition:all 0.2s;"
+  @mouseover="e=>e.currentTarget.style.borderColor='var(--accent)'"
+  @mouseleave="e=>e.currentTarget.style.borderColor='var(--border)'">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  Add to Playlist
+</button>
 
+<!-- Bootstrap Modal -->
+<Teleport to="body">
+  <div class="modal fade" id="playlistModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" :style="{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: '16px',
+        color: 'var(--text-primary)',
+      }">
+        <div class="modal-header" style="border-bottom:1px solid var(--border); padding:20px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img :src="song.cover" style="width:44px; height:44px; border-radius:8px; object-fit:cover;" />
+            <div>
+              <h5 style="margin:0; font-family:'Syne',sans-serif; font-weight:700; color:var(--text-primary);">Add to Playlist</h5>
+              <p style="margin:0; font-size:0.78rem; color:var(--text-secondary);">{{ song.title }} — {{ song.artist }}</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+            :style="{ filter: 'invert(1)', opacity: '0.6' }"></button>
+        </div>
+
+        <div class="modal-body" style="padding:16px 24px;">
+          <!-- Kalau tidak ada playlist -->
+          <div v-if="store.playlists.length === 0" style="text-align:center; padding:24px; color:var(--text-secondary);">
+            <p style="margin-bottom:12px;">No playlists yet!</p>
+            <button data-bs-dismiss="modal" @click="$router.push('/playlist')" class="btn-accent">
+              Create Playlist
+            </button>
+          </div>
+
+          <!-- List playlist -->
+          <div v-for="playlist in store.playlists" :key="playlist.id"
+            @click="addToPlaylist(playlist.id)"
+            :style="{
+              display:'flex', alignItems:'center', gap:'12px',
+              padding:'12px', borderRadius:'10px', cursor:'pointer',
+              background: addedTo === playlist.id ? 'rgba(255,85,0,0.1)' : 'transparent',
+              border: addedTo === playlist.id ? '1px solid var(--accent)' : '1px solid transparent',
+              transition:'all 0.2s', marginBottom:'8px',
+            }"
+            class="playlist-item">
+            <!-- Cover playlist -->
+            <div style="width:44px; height:44px; border-radius:8px; overflow:hidden; background:var(--bg-hover); flex-shrink:0;">
+              <img v-if="store.getPlaylistSongs(playlist.id)[0]"
+                :src="store.getPlaylistSongs(playlist.id)[0].cover"
+                style="width:100%; height:100%; object-fit:cover;" />
+              <div v-else style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+              </div>
+            </div>
+            <div style="flex:1;">
+              <p style="font-family:'Syne',sans-serif; font-weight:600; font-size:0.9rem; color:var(--text-primary); margin:0;">{{ playlist.name }}</p>
+              <p style="color:var(--text-secondary); font-size:0.75rem; margin:2px 0 0;">{{ playlist.songs.length }} songs</p>
+            </div>
+            <!-- Checkmark kalau sudah ditambah -->
+            <span v-if="addedTo === playlist.id" style="color:var(--accent); font-size:1.2rem;">✓</span>
+            <span v-else style="color:var(--text-secondary); font-size:1.2rem;">+</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Teleport>
       <div style="display:flex; align-items:center; gap:10px; width:100%;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
         <input type="range" min="0" max="1" step="0.01" :value="volume"
@@ -133,8 +210,14 @@ const fs          = ref(false)
 const zoom        = ref(300)
 const isShuffle  = ref(false)
 const repeatMode = ref(0)  // 0=off, 1=repeat all, 2=repeat one
-
 const song = computed(() => store.getSongById(route.params.id))
+const addedTo = ref(null)
+
+function addToPlaylist(playlistId) {
+  store.addSongToPlaylist(playlistId, song.value.id)
+  addedTo.value = playlistId
+  setTimeout(() => { addedTo.value = null }, 1500)
+}
 
 // Fungsi auto play — tunggu audio siap baru play
 function autoPlay() {
@@ -178,12 +261,21 @@ function togglePlay() {
   isPlaying.value ? audioEl.value.pause() : audioEl.value.play()
   isPlaying.value = !isPlaying.value
 }
+
 function goNext() {
   if (isShuffle.value) {
-    // Random lagu selain yang sedang diputar
-    const others = store.songs.filter(s => s.id !== Number(route.params.id))
+    const list = store.currentPlaylistId 
+      ? store.getPlaylistSongs(store.currentPlaylistId)
+      : store.songs
+    const others = list.filter(s => s.id !== Number(route.params.id))
     const random = others[Math.floor(Math.random() * others.length)]
     router.push(`/song/${random.id}`)
+  } else if (store.currentPlaylistId) {
+    // Pakai urutan playlist
+    const songs = store.getPlaylistSongs(store.currentPlaylistId)
+    const idx = songs.findIndex(s => s.id === Number(route.params.id))
+    const next = songs[(idx + 1) % songs.length]
+    router.push(`/song/${next.id}`)
   } else {
     router.push(`/song/${store.getNextSong(route.params.id).id}`)
   }
@@ -191,9 +283,17 @@ function goNext() {
 
 function goPrev() {
   if (isShuffle.value) {
-    const others = store.songs.filter(s => s.id !== Number(route.params.id))
+    const list = store.currentPlaylistId
+      ? store.getPlaylistSongs(store.currentPlaylistId)
+      : store.songs
+    const others = list.filter(s => s.id !== Number(route.params.id))
     const random = others[Math.floor(Math.random() * others.length)]
     router.push(`/song/${random.id}`)
+  } else if (store.currentPlaylistId) {
+    const songs = store.getPlaylistSongs(store.currentPlaylistId)
+    const idx = songs.findIndex(s => s.id === Number(route.params.id))
+    const prev = songs[(idx - 1 + songs.length) % songs.length]
+    router.push(`/song/${prev.id}`)
   } else {
     router.push(`/song/${store.getPrevSong(route.params.id).id}`)
   }
@@ -251,4 +351,7 @@ onUnmounted(() => {
   box-shadow:0 0 25px var(--accent-glow); transition:transform 0.15s;
 }
 .play-btn:active { transform:scale(0.93); }
+.playlist-item:hover {
+  background: var(--bg-hover) !important;
+}
 </style>
