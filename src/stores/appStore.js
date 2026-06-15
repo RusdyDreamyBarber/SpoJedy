@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-
+//lagu
 const defaultSongs = [
   {
     id: 1,
@@ -52,7 +52,7 @@ const defaultSongs = [
     videoId: 6,
   },
 ]
-
+//video
 const defaultVideos = [
   {
     id: 1,
@@ -106,14 +106,19 @@ const defaultVideos = [
 
 
 const saved = JSON.parse(localStorage.getItem('spojedy_profile') || 'null')
+const savedFavorites = JSON.parse(localStorage.getItem('spojedy_favorites') || '[]')
+const savedPlaylists = JSON.parse(localStorage.getItem('spojedy_playlists') || '[]')
 
 export const store = reactive({
   songs: defaultSongs,
   videos: defaultVideos,
+  favorites: savedFavorites,
+  playlists: savedPlaylists,
   profile: {
     username:     saved?.username     || 'Guest User',
     profileImage: saved?.profileImage || null,
     theme:        saved?.theme        || 'dark',
+  
   },
   getSongById(id)  { return defaultSongs.find(s => s.id === Number(id)) },
   getVideoById(id) { return defaultVideos.find(v => v.id === Number(id)) },
@@ -142,7 +147,57 @@ export const store = reactive({
     this.saveProfile()
   },
   setUsername(name) { this.profile.username = name; this.saveProfile() },
-  setProfileImage(blob) { this.profile.profileImage = blob; this.saveProfile() },
+  setProfileImage(blob) { this.profile.profileImage = blob; this.saveProfile() 
+  },
+  isFavorite(id) {
+  return this.favorites.includes(Number(id))
+  },
+  toggleFavorite(id) {
+  const numId = Number(id)
+  if (this.favorites.includes(numId)) {
+    this.favorites = this.favorites.filter(f => f !== numId)
+  } else {
+    this.favorites.push(numId)
+  }
+  localStorage.setItem('spojedy_favorites', JSON.stringify(this.favorites))
+  },
+  createPlaylist(name) {
+  const playlist = {
+    id: Date.now(),
+    name: name,
+    songs: [],
+    createdAt: new Date().toLocaleDateString(),
+  }
+  this.playlists.push(playlist)
+  this.savePlaylists()
+  return playlist
+},
+deletePlaylist(id) {
+  this.playlists = this.playlists.filter(p => p.id !== id)
+  this.savePlaylists()
+},
+addSongToPlaylist(playlistId, songId) {
+  const playlist = this.playlists.find(p => p.id === playlistId)
+  if (playlist && !playlist.songs.includes(Number(songId))) {
+    playlist.songs.push(Number(songId))
+    this.savePlaylists()
+  }
+},
+removeSongFromPlaylist(playlistId, songId) {
+  const playlist = this.playlists.find(p => p.id === playlistId)
+  if (playlist) {
+    playlist.songs = playlist.songs.filter(s => s !== Number(songId))
+    this.savePlaylists()
+  }
+},
+getPlaylistSongs(playlistId) {
+  const playlist = this.playlists.find(p => p.id === playlistId)
+  if (!playlist) return []
+  return playlist.songs.map(id => this.getSongById(id)).filter(Boolean)
+},
+savePlaylists() {
+  localStorage.setItem('spojedy_playlists', JSON.stringify(this.playlists))
+},
 })
 
 document.documentElement.setAttribute('data-theme', store.profile.theme)

@@ -85,7 +85,6 @@ const links = [
   { to: '/',         label: 'Home' },
   { to: '/videos',   label: 'Music Videos' },
   { to: '/playlist', label: 'Playlist' },
-  { to: '/profile',  label: 'Profile' },
 ]
 
 function isActive(path) {

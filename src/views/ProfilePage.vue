@@ -55,25 +55,36 @@
       </div>
 
       <!-- Theme -->
-      <div class="card fade-in-3" style="padding:28px;">
-        <label style="display:block; color:var(--text-secondary); font-size:0.82rem; margin-bottom:16px; text-transform:uppercase; letter-spacing:1px;">Theme</label>
-        <div style="display:flex; gap:12px;">
-          <button @click="store.setTheme('dark')"
-            :style="{
-              flex:1, padding:'14px', borderRadius:'12px', cursor:'pointer',
-              border: store.profile.theme==='dark' ? '2px solid var(--accent)' : '1px solid var(--border)',
-              background: store.profile.theme==='dark' ? 'var(--accent-glow)' : 'var(--bg-hover)',
-              color:'var(--text-primary)', fontFamily:'Syne,sans-serif', fontWeight:'600',
-            }">🌙 Dark Mode</button>
-          <button @click="store.setTheme('light')"
-            :style="{
-              flex:1, padding:'14px', borderRadius:'12px', cursor:'pointer',
-              border: store.profile.theme==='light' ? '2px solid var(--accent)' : '1px solid var(--border)',
-              background: store.profile.theme==='light' ? 'var(--accent-glow)' : 'var(--bg-hover)',
-              color:'var(--text-primary)', fontFamily:'Syne,sans-serif', fontWeight:'600',
-            }">☀️ Light Mode</button>
-        </div>
+<div class="card fade-in-3" style="padding:28px;">
+  <label style="display:block; color:var(--text-secondary); font-size:0.82rem; margin-bottom:16px; text-transform:uppercase; letter-spacing:1px;">Theme</label>
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-size:1.2rem;">{{ store.profile.theme === 'dark' ? '🌚' : '🌝' }}</span>
+      <div>
+        <p style="color:var(--text-primary); font-family:'Syne',sans-serif; font-weight:600;">{{ store.profile.theme === 'dark' ? 'Dark Mode' : 'Light Mode' }}</p>
+        <p style="color:var(--text-secondary); font-size:0.78rem; margin-top:2px;">{{ store.profile.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode' }}</p>
       </div>
+    </div>
+    <!-- Toggle button -->
+    <div @click="store.setTheme(store.profile.theme === 'dark' ? 'light' : 'dark')"
+      :style="{
+        width: '52px', height: '28px', borderRadius: '50px',
+        background: store.profile.theme === 'dark' ? 'var(--bg-hover)' : 'var(--accent)',
+        cursor: 'pointer', position: 'relative',
+        transition: 'background 0.3s ease',
+        border: '1px solid var(--border)',
+      }">
+      <div :style="{
+        position: 'absolute', top: '3px',
+        left: store.profile.theme === 'dark' ? '3px' : '25px',
+        width: '20px', height: '20px', borderRadius: '50%',
+        background: store.profile.theme === 'dark' ? 'var(--text-secondary)' : 'white',
+        transition: 'left 0.3s ease',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+      }" />
+    </div>
+  </div>
+</div>
 
     </div>
   </div>

@@ -1,5 +1,5 @@
 <template>
-  <div style="min-height:100vh; background: linear-gradient(180deg, #1a0a00 0%, #121212 300px);">
+  <div style="min-height:100vh; background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 300px);">
     <div style="max-width:1200px; margin:0 auto; padding:40px 24px;">
 
       <!-- Hero Carousel -->
@@ -77,11 +77,46 @@
             :style="{ width:'3px', height:h+'px', background:'var(--accent)', borderRadius:'2px', opacity:0.6 }" />
         </div>
       </div>
+      
+      <!-- Search Bar -->
+<div class="fade-in-1" style="margin-bottom:24px;">
+  <div style="position:relative; max-width:400px;">
+    <svg style="position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none;"
+      width="18" height="18" viewBox="0 0 24 24" fill="var(--text-secondary)">
+      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+    </svg>
+    <input v-model="search" type="text" placeholder="Search songs or artists..."
+      :style="{
+        width: '100%',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: '50px',
+        padding: '10px 16px 10px 42px',
+        color: 'var(--text-primary)',
+        fontSize: '0.9rem',
+        outline: 'none',
+        fontFamily: 'DM Sans, sans-serif',
+        transition: 'border-color 0.2s',
+      }"
+      @focus="e => e.target.style.borderColor = 'var(--accent)'"
+      @blur="e => e.target.style.borderColor = 'var(--border)'"
+    />
+    <!-- Clear button -->
+    <button v-if="search" @click="search = ''"
+      style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:1rem;">
+      ✕
+    </button>
+  </div>
+  <!-- Hasil search info -->
+  <p v-if="search" style="color:var(--text-secondary); font-size:0.8rem; margin-top:8px; margin-left:4px;">
+    {{ filteredSongs.length }} result{{ filteredSongs.length !== 1 ? 's' : '' }} for "<span style="color:var(--accent);">{{ search }}</span>"
+  </p>
+</div>
 
       <!-- Song Grid -->
       <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px;">
         <div
-          v-for="(song, i) in store.songs" :key="song.id"
+          v-for="(song, i) in filteredSongs" :key="song.id"
           :class="['card', `fade-in-${Math.min(i+1,4)}`]"
           @click="$router.push(`/song/${song.id}`)"
           style="cursor:pointer;">
@@ -105,12 +140,35 @@
           </div>
 
           <div style="padding:12px 14px 14px;">
-            <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ song.title }}</p>
-            <p style="color:var(--text-secondary); font-size:0.78rem; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ song.artist }}</p>
-          </div>
+  <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ song.title }}</p>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+    <p style="color:var(--text-secondary); font-size:0.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ song.artist }}</p>
+    <!-- Tombol Like -->
+    <button @click.stop="store.toggleFavorite(song.id)"
+      :style="{
+        background: 'none', border: 'none', cursor: 'pointer',
+        color: store.isFavorite(song.id) ? '#ff4d4d' : 'var(--text-secondary)',
+        transition: 'color 0.2s, transform 0.15s',
+        padding: '4px',
+        fontSize: '1rem',
+      }"
+      @mousedown="e => e.currentTarget.style.transform='scale(0.85)'"
+      @mouseup="e => e.currentTarget.style.transform='scale(1)'">
+      {{ store.isFavorite(song.id) ? '❤️' : '🤍' }}
+    </button>
+  </div>
+</div>
         </div>
       </div>
-
+<!--kalau gak ada lagu nya-->
+<div v-if="filteredSongs.length === 0"
+  style="text-align:center; padding:60px 24px; color:var(--text-secondary);">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.3; margin-bottom:12px;">
+    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+  </svg>
+  <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; color:var(--text-primary);">No songs found</p>
+  <p style="margin-top:6px; font-size:0.85rem;">Try searching with different keywords</p>
+</div>
     </div>
   </div>
 </template>
@@ -121,7 +179,15 @@ import { store } from '@/stores/appStore.js'
 
 const loaded = reactive({})
 const activeSlide = ref(0)
+const search = ref('')
 
+const filteredSongs = computed(() => {
+  if (!search.value) return store.songs
+  return store.songs.filter(s =>
+    s.title.toLowerCase().includes(search.value.toLowerCase()) ||
+    s.artist.toLowerCase().includes(search.value.toLowerCase())
+  )
+})
 // Featured songs — random 3 lagu setiap kali app dijalankan
 const featuredSongs = ref(
   [...store.songs].sort(() => Math.random() - 0.5).slice(0, 3)

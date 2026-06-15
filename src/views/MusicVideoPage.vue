@@ -1,5 +1,5 @@
 <template>
-  <div style="min-height:100vh; background: linear-gradient(180deg, #0d0800 0%, #121212 300px);">
+ <div style="min-height:100vh; background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 300px);">
     <div style="max-width:1200px; margin:0 auto; padding:40px 24px;">
 
       <!-- Header -->
@@ -10,6 +10,38 @@
         </h1>
       </div>
 
+      <!-- Search Bar -->
+<div class="fade-in-1" style="margin-bottom:24px;">
+  <div style="position:relative; max-width:400px;">
+    <svg style="position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none;"
+      width="18" height="18" viewBox="0 0 24 24" fill="var(--text-secondary)">
+      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+    </svg>
+    <input v-model="search" type="text" placeholder="Search videos or artists..."
+      :style="{
+        width: '100%',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: '50px',
+        padding: '10px 16px 10px 42px',
+        color: 'var(--text-primary)',
+        fontSize: '0.9rem',
+        outline: 'none',
+        fontFamily: 'DM Sans, sans-serif',
+        transition: 'border-color 0.2s',
+      }"
+      @focus="e => e.target.style.borderColor = 'var(--accent)'"
+      @blur="e => e.target.style.borderColor = 'var(--border)'"
+    />
+    <button v-if="search" @click="search = ''"
+      style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:1rem;">
+      ✕
+    </button>
+  </div>
+  <p v-if="search" style="color:var(--text-secondary); font-size:0.8rem; margin-top:8px; margin-left:4px;">
+    {{ filteredVideos.length }} result{{ filteredVideos.length !== 1 ? 's' : '' }} for "<span style="color:var(--accent);">{{ search }}</span>"
+  </p>
+</div>
       <!-- SPOTLIGHT -->
       <div class="fade-in-1" style="margin-bottom:48px;">
         <p style="color:var(--text-secondary); font-size:0.78rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:14px;">🎬 Spotlight</p>
@@ -82,7 +114,7 @@
       <div class="fade-in-3">
         <p style="color:var(--text-secondary); font-size:0.78rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:14px;">🎵 Browse</p>
         <div style="columns:3; column-gap:14px;">
-          <div v-for="(v, i) in store.videos" :key="v.id"
+          <div v-for="(v, i) in filteredVideos" :key="v.id"
             @click="$router.push(`/video/${v.id}`)"
             style="break-inside:avoid; margin-bottom:14px; cursor:pointer; border-radius:10px; overflow:hidden; background:var(--bg-card); border:1px solid var(--border); transition:all 0.25s;"
             class="masonry-card">
@@ -100,19 +132,34 @@
           </div>
         </div>
       </div>
-
+      <div v-if="filteredVideos.length === 0"
+  style="text-align:center; padding:60px 24px; color:var(--text-secondary);">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.3; margin-bottom:12px; display:block; margin-left:auto; margin-right:auto;">
+    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+  </svg>
+  <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; color:var(--text-primary);">No videos found</p>
+  <p style="margin-top:6px; font-size:0.85rem;">Try searching with different keywords</p>
+</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { store } from '@/stores/appStore.js'
 
 const loaded         = reactive({})
 const masonryRatios  = ['75%', '56.25%', '90%', '56.25%', '75%', '100%']
 const spotlightVideo = computed(() => store.videos[0])
 const sideVideos     = computed(() => store.videos.slice(1, 4))
+const search = ref('')
+const filteredVideos = computed(() => {
+  if (!search.value) return store.videos
+  return store.videos.filter(v =>
+    v.title.toLowerCase().includes(search.value.toLowerCase()) ||
+    v.artist.toLowerCase().includes(search.value.toLowerCase())
+  )
+})
 </script>
 
 <style scoped>

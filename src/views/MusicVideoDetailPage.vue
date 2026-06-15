@@ -7,7 +7,7 @@
         <video ref="vid" :src="video.videoUrl"
           @timeupdate="cur = vid.currentTime"
           @loadedmetadata="dur = vid.duration"
-          @ended="goNext"
+          @ended="onEnded"
           @click="togglePlay"
           style="width:100%; display:block; max-height:450px; object-fit:contain;"
           playsinline />
@@ -45,6 +45,45 @@
           <input type="range" min="0" max="1" step="0.01" :value="vol"
             @input="e => { vol=+e.target.value; vid.volume=vol }" style="flex:1;" />
         </div>
+        <div style="display:flex; align-items:center; gap:16px; margin-top:8px;">
+  <!-- Shuffle -->
+  <button @click="isShuffle = !isShuffle"
+    :style="{
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: isShuffle ? 'var(--accent)' : 'var(--text-secondary)',
+      transition: 'color 0.2s',
+      display: 'flex', alignItems: 'center', gap: '6px',
+      fontSize: '0.82rem', fontFamily: 'Syne, sans-serif',
+    }">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+    </svg>
+    Shuffle
+  </button>
+
+  <!-- Repeat -->
+  <button @click="repeatMode = (repeatMode + 1) % 3"
+    :style="{
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: repeatMode > 0 ? 'var(--accent)' : 'var(--text-secondary)',
+      transition: 'color 0.2s',
+      display: 'flex', alignItems: 'center', gap: '6px',
+      fontSize: '0.82rem', fontFamily: 'Syne, sans-serif',
+    }">
+    <div style="position:relative; width:20px; height:20px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+      </svg>
+      <span v-if="repeatMode === 2"
+        style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+               font-size:0.55rem; font-weight:800; color:var(--accent);
+               font-family:'Syne',sans-serif; line-height:1;">
+        1
+      </span>
+    </div>
+    Repeat
+  </button>
+</div>
       </div>
 
       <div>
@@ -74,6 +113,8 @@ const playing = ref(false)
 const cur     = ref(0)
 const dur     = ref(0)
 const vol     = ref(1)
+const isShuffle  = ref(false)
+const repeatMode = ref(0) // 0=off, 1=repeat all, 2=repeat one
 
 const video = computed(() => store.getVideoById(route.params.id))
 
@@ -87,10 +128,21 @@ function autoPlay() {
       .catch(() => { playing.value = false })
   }, { once: true })
 }
-
+// Shortcuts Keyboard
+function handleKeyboard(e) {
+  if (e.target.tagName === 'INPUT') return
+  if (e.code === 'Space') { e.preventDefault(); togglePlay() }
+  if (e.code === 'ArrowRight') { e.preventDefault(); if(vid.value) { vid.value.currentTime = Math.min(dur.value, vid.value.currentTime + 10); cur.value = vid.value.currentTime } }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); if(vid.value) { vid.value.currentTime = Math.max(0, vid.value.currentTime - 10); cur.value = vid.value.currentTime } }
+  if (e.code === 'ArrowUp') { e.preventDefault(); vol.value = Math.min(1, vol.value + 0.1); if(vid.value) vid.value.volume = vol.value }
+  if (e.code === 'ArrowDown') { e.preventDefault(); vol.value = Math.max(0, vol.value - 0.1); if(vid.value) vid.value.volume = vol.value }
+  if (e.code === 'KeyN') goNext()
+  if (e.code === 'KeyP') goPrev()
+}
 // Auto play saat pertama kali halaman dibuka
 onMounted(() => {
   autoPlay()
+  window.addEventListener('keydown', handleKeyboard)
 })
 
 // Auto play saat video berubah karena next/prev
@@ -107,10 +159,39 @@ function togglePlay() {
   playing.value = !playing.value
 }
 function goNext() {
-  router.push(`/video/${store.getNextVideo(route.params.id).id}`)
+  if (isShuffle.value) {
+    const others = store.videos.filter(v => v.id !== Number(route.params.id))
+    const random = others[Math.floor(Math.random() * others.length)]
+    router.push(`/video/${random.id}`)
+  } else {
+    router.push(`/video/${store.getNextVideo(route.params.id).id}`)
+  }
 }
+
 function goPrev() {
-  router.push(`/video/${store.getPrevVideo(route.params.id).id}`)
+  if (isShuffle.value) {
+    const others = store.videos.filter(v => v.id !== Number(route.params.id))
+    const random = others[Math.floor(Math.random() * others.length)]
+    router.push(`/video/${random.id}`)
+  } else {
+    router.push(`/video/${store.getPrevVideo(route.params.id).id}`)
+  }
+}
+
+function onEnded() {
+  if (repeatMode.value === 2) {
+    vid.value.currentTime = 0
+    vid.value.play()
+  } else if (repeatMode.value === 1) {
+    goNext()
+  } else {
+    const currentIndex = store.videos.findIndex(v => v.id === Number(route.params.id))
+    if (currentIndex < store.videos.length - 1) {
+      goNext()
+    } else {
+      playing.value = false
+    }
+  }
 }
 function goFS() {
   if (vid.value?.requestFullscreen) vid.value.requestFullscreen()
@@ -122,6 +203,7 @@ function fmt(s) {
 }
 onUnmounted(() => {
   if (vid.value) { vid.value.pause(); vid.value.src = '' }
+  window.removeEventListener('keydown', handleKeyboard)
 })
 </script>
 

@@ -3,7 +3,7 @@
     <audio ref="audioEl" :src="song.audio"
       @timeupdate="currentTime = audioEl.currentTime"
       @loadedmetadata="duration = audioEl.duration"
-      @ended="goNext" />
+      @ended="onEnded" />
 
     <button @click="$router.push('/')" class="back-btn">← Back to Songs</button>
 
@@ -38,6 +38,49 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
         </button>
       </div>
+
+      <!-- Repeat & Shuffle buttons -->
+<div style="display:flex; align-items:center; gap:16px; margin-top:8px;">
+  <!-- Shuffle -->
+  <button @click="isShuffle = !isShuffle"
+    :style="{
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: isShuffle ? 'var(--accent)' : 'var(--text-secondary)',
+      transition: 'color 0.2s',
+      display: 'flex', alignItems: 'center', gap: '6px',
+      fontSize: '0.82rem', fontFamily: 'Syne, sans-serif',
+    }">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+    </svg>
+    Shuffle
+  </button>
+
+  <!-- Repeat -->
+  <button @click="repeatMode = (repeatMode + 1) % 3"
+  :style="{
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: repeatMode > 0 ? 'var(--accent)' : 'var(--text-secondary)',
+    transition: 'color 0.2s',
+    display: 'flex', alignItems: 'center', gap: '6px',
+    fontSize: '0.82rem', fontFamily: 'Syne, sans-serif',
+  }">
+  <!-- Logo repeat dengan angka 1 di dalam nya -->
+  <div style="position:relative; width:20px; height:20px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+    </svg>
+    <!-- Angka 1 di tengah logo -->
+    <span v-if="repeatMode === 2"
+      style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+             font-size:0.55rem; font-weight:800; color:var(--accent);
+             font-family:'Syne',sans-serif; line-height:1;">
+      1
+    </span>
+  </div>
+  Repeat
+</button>
+</div>
 
       <div style="display:flex; align-items:center; gap:10px; width:100%;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
@@ -88,6 +131,8 @@ const duration    = ref(0)
 const volume      = ref(1)
 const fs          = ref(false)
 const zoom        = ref(300)
+const isShuffle  = ref(false)
+const repeatMode = ref(0)  // 0=off, 1=repeat all, 2=repeat one
 
 const song = computed(() => store.getSongById(route.params.id))
 
@@ -102,10 +147,23 @@ function autoPlay() {
   }, { once: true })
 }
 
+//keyboard shortcut
+function handleKeyboard(e) {
+  if (e.target.tagName === 'INPUT') return
+  if (e.code === 'Space') { e.preventDefault(); togglePlay() }
+  if (e.code === 'ArrowRight') { e.preventDefault(); if(audioEl.value) { audioEl.value.currentTime = Math.min(duration.value, audioEl.value.currentTime + 10); currentTime.value = audioEl.value.currentTime } }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); if(audioEl.value) { audioEl.value.currentTime = Math.max(0, audioEl.value.currentTime - 10); currentTime.value = audioEl.value.currentTime } }
+  if (e.code === 'ArrowUp') { e.preventDefault(); volume.value = Math.min(1, volume.value + 0.1); if(audioEl.value) audioEl.value.volume = volume.value }
+  if (e.code === 'ArrowDown') { e.preventDefault(); volume.value = Math.max(0, volume.value - 0.1); if(audioEl.value) audioEl.value.volume = volume.value }
+  if (e.code === 'KeyN') goNext()
+  if (e.code === 'KeyP') goPrev()
+}
 // Auto play saat pertama kali halaman dibuka
 onMounted(() => {
   autoPlay()
+  window.addEventListener('keydown', handleKeyboard)
 })
+
 
 // Auto play saat lagu berubah karena next/prev
 watch(() => route.params.id, () => {
@@ -121,11 +179,45 @@ function togglePlay() {
   isPlaying.value = !isPlaying.value
 }
 function goNext() {
-  router.push(`/song/${store.getNextSong(route.params.id).id}`)
+  if (isShuffle.value) {
+    // Random lagu selain yang sedang diputar
+    const others = store.songs.filter(s => s.id !== Number(route.params.id))
+    const random = others[Math.floor(Math.random() * others.length)]
+    router.push(`/song/${random.id}`)
+  } else {
+    router.push(`/song/${store.getNextSong(route.params.id).id}`)
+  }
 }
+
 function goPrev() {
-  router.push(`/song/${store.getPrevSong(route.params.id).id}`)
+  if (isShuffle.value) {
+    const others = store.songs.filter(s => s.id !== Number(route.params.id))
+    const random = others[Math.floor(Math.random() * others.length)]
+    router.push(`/song/${random.id}`)
+  } else {
+    router.push(`/song/${store.getPrevSong(route.params.id).id}`)
+  }
 }
+
+function onEnded() {
+  if (repeatMode.value === 2) {
+    // Repeat One — putar lagu yang sama terus
+    audioEl.value.currentTime = 0
+    audioEl.value.play()
+  } else if (repeatMode.value === 1) {
+    // Repeat All — lanjut next, kalau sudah lagu terakhir balik ke pertama
+    goNext()
+  } else {
+    // Off — lanjut next, kalau lagu terakhir stop
+    const currentIndex = store.songs.findIndex(s => s.id === Number(route.params.id))
+    if (currentIndex < store.songs.length - 1) {
+      goNext()
+    } else {
+      isPlaying.value = false
+    }
+  }
+}
+
 function openFS() { fs.value = true; zoom.value = 300 }
 function fmt(s) {
   if (!s || isNaN(s)) return '0:00'
@@ -133,6 +225,7 @@ function fmt(s) {
 }
 onUnmounted(() => {
   if (audioEl.value) { audioEl.value.pause(); audioEl.value.src = '' }
+  window.removeEventListener('keydown', handleKeyboard)
 })
 </script>
 
