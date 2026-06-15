@@ -1,0 +1,161 @@
+<template>
+  <div v-if="song" style="max-width:680px; margin:0 auto; padding:40px 24px;">
+    <audio ref="audioEl" :src="song.audio"
+      @timeupdate="currentTime = audioEl.currentTime"
+      @loadedmetadata="duration = audioEl.duration"
+      @ended="goNext" />
+
+    <button @click="$router.push('/')" class="back-btn">← Back to Songs</button>
+
+    <div class="fade-in" style="display:flex; flex-direction:column; gap:28px; align-items:center;">
+      <div @click="openFS" style="cursor:zoom-in; position:relative; display:inline-block;">
+        <img :src="song.cover" :alt="song.title" :class="['cover', { playing: isPlaying }]" />
+        <span style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.6); color:white; font-size:0.72rem; padding:3px 8px; border-radius:6px;">⤢ Fullscreen</span>
+      </div>
+
+      <div style="text-align:center;">
+        <h1 style="font-size:1.8rem; font-weight:800; color:var(--text-primary);">{{ song.title }}</h1>
+        <p style="color:var(--text-secondary); margin-top:4px;">{{ song.artist }}</p>
+      </div>
+
+      <div style="width:100%;">
+        <input type="range" min="0" :max="duration||100" :value="currentTime"
+          @input="e => { audioEl.currentTime = e.target.value; currentTime = +e.target.value }" />
+        <div style="display:flex; justify-content:space-between; color:var(--text-secondary); font-size:0.78rem; margin-top:4px;">
+          <span>{{ fmt(currentTime) }}</span><span>{{ fmt(duration) }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:20px;">
+        <button @click="goPrev" class="ctrl-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button @click="togglePlay" class="play-btn">
+          <svg v-if="!isPlaying" width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          <svg v-else             width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button @click="goNext" class="ctrl-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; width:100%;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
+        <input type="range" min="0" max="1" step="0.01" :value="volume"
+          @input="e => { volume = +e.target.value; audioEl.volume = volume }" style="flex:1;" />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-secondary)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z"/></svg>
+      </div>
+
+      <button @click="$router.push(`/video/${song.videoId}`)" class="btn-accent"
+        style="display:flex; align-items:center; gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        Watch Music Video
+      </button>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="fs" @click.self="fs=false"
+        style="position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.92);
+               display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+        <img :src="song.cover" :alt="song.title"
+          :style="{ width:zoom+'px', height:zoom+'px', objectFit:'cover', borderRadius:'12px', transition:'width 0.2s, height 0.2s', maxWidth:'90vw', maxHeight:'75vh' }" />
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button @click="zoom = Math.max(150, zoom-80)" class="ctrl-btn">−</button>
+          <span style="color:white; min-width:50px; text-align:center; font-size:0.85rem;">{{ Math.round(zoom/3) }}%</span>
+          <button @click="zoom = Math.min(900, zoom+80)" class="ctrl-btn">+</button>
+          <button @click="fs=false" class="btn-accent" style="margin-left:8px;">✕ Exit</button>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+
+  <div v-else style="text-align:center; padding:80px 24px; color:var(--text-secondary);">
+    Song not found. <button @click="$router.push('/')" class="btn-accent" style="margin-left:12px;">Home</button>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { store } from '@/stores/appStore.js'
+
+const route       = useRoute()
+const router      = useRouter()
+const audioEl     = ref(null)
+const isPlaying   = ref(false)
+const currentTime = ref(0)
+const duration    = ref(0)
+const volume      = ref(1)
+const fs          = ref(false)
+const zoom        = ref(300)
+
+const song = computed(() => store.getSongById(route.params.id))
+
+// Fungsi auto play — tunggu audio siap baru play
+function autoPlay() {
+  if (!audioEl.value) return
+  audioEl.value.load()
+  audioEl.value.addEventListener('canplay', () => {
+    audioEl.value.play()
+      .then(() => { isPlaying.value = true })
+      .catch(() => { isPlaying.value = false })
+  }, { once: true })
+}
+
+// Auto play saat pertama kali halaman dibuka
+onMounted(() => {
+  autoPlay()
+})
+
+// Auto play saat lagu berubah karena next/prev
+watch(() => route.params.id, () => {
+  currentTime.value = 0
+  duration.value = 0
+  isPlaying.value = false
+  setTimeout(() => { autoPlay() }, 100)
+})
+
+function togglePlay() {
+  if (!audioEl.value) return
+  isPlaying.value ? audioEl.value.pause() : audioEl.value.play()
+  isPlaying.value = !isPlaying.value
+}
+function goNext() {
+  router.push(`/song/${store.getNextSong(route.params.id).id}`)
+}
+function goPrev() {
+  router.push(`/song/${store.getPrevSong(route.params.id).id}`)
+}
+function openFS() { fs.value = true; zoom.value = 300 }
+function fmt(s) {
+  if (!s || isNaN(s)) return '0:00'
+  return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`
+}
+onUnmounted(() => {
+  if (audioEl.value) { audioEl.value.pause(); audioEl.value.src = '' }
+})
+</script>
+
+<style scoped>
+.cover {
+  width:260px; height:260px; object-fit:cover; border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--accent-glow);
+}
+.cover.playing { animation: glow 2s ease-in-out infinite; }
+@keyframes glow {
+  0%,100% { box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 20px var(--accent-glow); }
+  50%      { box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 55px var(--accent-glow); }
+}
+.back-btn {
+  background:none; border:none; color:var(--text-secondary); cursor:pointer;
+  font-size:0.88rem; margin-bottom:28px; padding:0; display:block;
+}
+.back-btn:hover { color:var(--text-primary); }
+.play-btn {
+  width:60px; height:60px; border-radius:50%;
+  background:var(--accent); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 25px var(--accent-glow); transition:transform 0.15s;
+}
+.play-btn:active { transform:scale(0.93); }
+</style>
